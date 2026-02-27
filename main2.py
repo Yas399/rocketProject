@@ -20,7 +20,7 @@ def sound_path(filename):
 # Load audio ONCE
     # Background Space Ambience (loops forever)
 pygame.mixer.music.load(sound_path("space_ambience.mp3"))
-pygame.mixer.music.set_volume(0.8)
+pygame.mixer.music.set_volume(0.7)
 pygame.mixer.music.play(-1)
 
     # Sound Effects
