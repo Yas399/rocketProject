@@ -77,7 +77,7 @@ def run_gaame(screen, clock, explosion_sound, storm_sound, font, big_font, title
             "speed": BASE_OBSTACLE_SPEED + difficulty
         }
 
-    def reset_obstacles(count=5):
+    def reset_obstacles(count=8):
         return [create_obstacle() for _ in range(count)]
 
     obstacles = reset_obstacles()
