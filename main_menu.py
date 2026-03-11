@@ -1,100 +1,93 @@
 import pygame
 import sys
 import random
-import math
-from mission_shakti import run_gaame
+import os
 from simulation_mode import run_simulation
-
+from mission_shakti import  run_gaame
+# ================== INIT (ONLY ONCE) ==================
 pygame.init()
 
-# ---------------- WINDOW SETUP ----------------
 WIDTH, HEIGHT = 1000, 600
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Mission Viksit Bharat 🚀")
 clock = pygame.time.Clock()
 
-# ---------------- FONTS ----------------
-title_font = pygame.font.SysFont("arial", 48, bold=True)
-subtitle_font = pygame.font.SysFont("arial", 24)
-menu_font = pygame.font.SysFont("arial", 36)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# ---------------- COLORS ----------------
-WHITE = (255, 255, 255)
-YELLOW = (255, 215, 0)
-HIGHLIGHT = (0, 255, 200)
-BACKGROUND = (5, 5, 25)
+def sound_path(filename):
+    return os.path.join(BASE_DIR, filename)
 
-# ---------------- MENU OPTIONS ----------------
-menu_options = ["Game Mode", "Simulation Mode", "Quit"]
-selected_index = 0
+# Load audio ONCE
+    # Background Space Ambience (loops forever)
+pygame.mixer.music.load(sound_path("space_ambience.mp3"))
+pygame.mixer.music.set_volume(0.7)
+pygame.mixer.music.play(-1)
 
-# ---------------- STARFIELD ----------------
-stars = [
-    {
-        "x": random.randint(0, WIDTH),
-        "y": random.randint(0, HEIGHT),
-        "size": random.randint(1, 3),
-        "speed": random.uniform(20, 80),
-        "angle": random.uniform(-math.pi/4, math.pi/4),  # diagonal
-        "twinkle": random.randint(1, 30)
-    } for _ in range(150)
-]
+    # Sound Effects
+rocket_sound = pygame.mixer.Sound(sound_path("rocket_engine.wav"))
+rocket_sound.set_volume(10.5)
 
-# ---------------- DRAW FUNCTIONS ----------------
-def draw_starfield(dt):
-    for star in stars:
-        # Move star diagonally
-        star["x"] += math.cos(star["angle"]) * star["speed"] * dt
-        star["y"] += math.sin(star["angle"]) * star["speed"] * dt
+explosion_sound = pygame.mixer.Sound(sound_path("explosion.wav"))
+explosion_sound.set_volume(0.9)
 
-        # Wrap around edges
-        if star["y"] > HEIGHT:
-            star["y"] = 0
-            star["x"] = random.randint(0, WIDTH)
-        if star["x"] > WIDTH:
-            star["x"] = 0
-            star["y"] = random.randint(0, HEIGHT)
-        if star["x"] < 0:
-            star["x"] = WIDTH
-            star["y"] = random.randint(0, HEIGHT)
+storm_sound = pygame.mixer.Sound(sound_path("storm_sound.wav"))
+storm_sound.set_volume(0.8)
 
-        # Twinkle effect
-        star["twinkle"] += 1
-        if star["twinkle"] > 30:
-            star["size"] = random.randint(1, 3)
-            star["twinkle"] = 0
+wind_sound=pygame.mixer.Sound(sound_path("windburst.wav"))
+wind_sound.set_volume(0.9)
 
-        pygame.draw.circle(screen, WHITE, (int(star["x"]), int(star["y"])), star["size"])
+thruster_sound=pygame.mixer.Sound(sound_path("thruster.wav"))
+thruster_sound.set_volume(0.9)
 
-def draw_menu():
-    screen.fill(BACKGROUND)
-    draw_starfield(1/60)
+rocket_vibrate = pygame.mixer.Sound(sound_path("rocket_vibration.mpeg"))
+rocket_vibrate.set_volume(0.9)
 
-    # Title
-    screen.blit(title_font.render("Mission Viksit Bharat 🚀", True, WHITE), (180, 120))
-    screen.blit(subtitle_font.render("Women Leading Space Navigation Technology", True, YELLOW), (160, 200))
 
-    # Menu Options
-    mouse_x, mouse_y = pygame.mouse.get_pos()
-    for i, option in enumerate(menu_options):
-        text_surface = menu_font.render(option, True, HIGHLIGHT if i == selected_index else WHITE)
-        text_rect = text_surface.get_rect(center=(WIDTH//2, 320 + i*70))
+# Fonts ONCE
+font = pygame.font.SysFont("arial", 22)
+big_font = pygame.font.SysFont("arial", 40)
+title_font = pygame.font.SysFont("arial", 32)
 
-        # Hover effect with mouse
-        if text_rect.collidepoint(mouse_x, mouse_y):
-            selected_index_hovered = i
-            text_surface = menu_font.render(option, True, HIGHLIGHT)
-            screen.blit(text_surface, text_rect)
-        else:
-            screen.blit(text_surface, text_rect)
+SPACE = (5, 5, 25)
+STAR = (200, 200, 200)
 
-# ---------------- MAIN MENU LOOP ----------------
+# ======================================================
+# ================== MAIN MENU =========================
+# ======================================================
+
 def main_menu():
-    global selected_index
+    global screen
+    screen = pygame.display.set_mode((1000, 600))
+    WIDTH, HEIGHT = screen.get_size()
+
+    menu_options = ["Game Mode", "Simulation Mode", "Quit"]
+    selected = 0
+
+    stars = [[random.randint(0, WIDTH), random.randint(0, HEIGHT)] for _ in range(100)]
+
     while True:
-        draw_menu()
-        pygame.display.update()
-        dt = clock.tick(60) / 1000  # frame time
+        dt = clock.tick(60) / 1000
+        screen.fill(SPACE)
+
+        # Star background
+        for star in stars:
+            star[1] += 40 * dt
+            if star[1] > HEIGHT:
+                star[1] = 0
+                star[0] = random.randint(0, WIDTH)
+            pygame.draw.circle(screen, STAR, star, 1)
+
+        # Title
+        screen.blit(title_font.render("MISSION VIKSIT BHARAT 🚀", True, (255,255,255)), (345,120))
+        screen.blit(font.render("Women Leading Space Navigation Technology", True, (255,215,0)), (320,170))
+
+        # Menu
+        for i, option in enumerate(menu_options):
+            color = (0,255,200) if i == selected else (255,255,255)
+            text = big_font.render(option, True, color)
+            screen.blit(text, (WIDTH//2 - text.get_width()//2, 260 + i*70))
+
+        pygame.display.flip()
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -103,38 +96,21 @@ def main_menu():
 
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_DOWN:
-                    selected_index = (selected_index + 1) % len(menu_options)
+                    selected = (selected + 1) % len(menu_options)
                 if event.key == pygame.K_UP:
-                    selected_index = (selected_index - 1) % len(menu_options)
+                    selected = (selected - 1) % len(menu_options)
                 if event.key == pygame.K_RETURN:
-                    choose_option()
 
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                if event.button == 1:  # left click
-                    choose_option(mouse_click=True)
+                    if menu_options[selected] == "Game Mode":
+                        run_gaame(screen, clock, explosion_sound, storm_sound, font, big_font, title_font)
 
-def choose_option(mouse_click=False):
-    global selected_index
-    if mouse_click:
-        mouse_x, mouse_y = pygame.mouse.get_pos()
-        for i, option in enumerate(menu_options):
-            text_surface = menu_font.render(option, True, WHITE)
-            text_rect = text_surface.get_rect(center=(WIDTH//2, 320 + i*70))
-            if text_rect.collidepoint(mouse_x, mouse_y):
-                selected_index = i
-                break
+                    elif menu_options[selected] == "Simulation Mode":
+                        run_simulation(storm_sound,wind_sound,thruster_sound,rocket_vibrate)
 
-    if menu_options[selected_index] == "Game Mode":
-        result = run_gaame()
-    elif menu_options[selected_index] == "Simulation Mode":
-        result = run_simulation()
-    elif menu_options[selected_index] == "Quit":
-        pygame.quit()
-        sys.exit()
+                    elif menu_options[selected] == "Quit":
+                        pygame.quit()
+                        sys.exit()
 
-    if result == "menu":
-        selected_index = 0
 
-# ---------------- RUN MAIN MENU ----------------
 if __name__ == "__main__":
     main_menu()

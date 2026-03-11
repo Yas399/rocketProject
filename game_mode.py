@@ -1,22 +1,10 @@
-def run_game():
-
+def run_gaame(screen, clock, explosion_sound, storm_sound, font, big_font, title_font):
     import pygame
     import random
-    import sys
-
-    pygame.init()
 
     # ---------------- SCREEN ----------------
-    WIDTH, HEIGHT = 800, 600
-    screen = pygame.display.set_mode((WIDTH, HEIGHT))
-    pygame.display.set_caption("Mission Shakti 🚀 | Pilot: Sunita Williams")
-    clock = pygame.time.Clock()
+    WIDTH, HEIGHT = screen.get_size()
 
-    font = pygame.font.SysFont("arial", 22)
-    big_font = pygame.font.SysFont("arial", 40)
-    title_font = pygame.font.SysFont("arial", 32)
-
-    # ---------------- COLORS ----------------
     SPACE = (5, 5, 25)
     STAR = (200, 200, 200)
     CME_COLOR = (255, 140, 0)
@@ -51,12 +39,13 @@ def run_game():
     difficulty = 1.0
     obstacle_speed_timer = 0
     BASE_OBSTACLE_SPEED = 2.5
-    MISSION_TIME = 900
+    MISSION_TIME = 900  # total run time
 
     # ---------------- STARS ----------------
     stars = [[random.randint(0, WIDTH), random.randint(0, HEIGHT)] for _ in range(40)]
 
     # ---------------- SOLAR CME ----------------
+
     CME_START_TIME = 10
     CME_ACTIVE_TIME = 8
     CME_COOLDOWN = 15
@@ -67,6 +56,7 @@ def run_game():
     storm_particles = []
     cme_vx = 0
     cme_vy = 0
+
 
     def spawn_cme(intensity):
         for _ in range(int(3 * intensity)):
@@ -87,7 +77,7 @@ def run_game():
             "speed": BASE_OBSTACLE_SPEED + difficulty
         }
 
-    def reset_obstacles(count=5):
+    def reset_obstacles(count=10):
         return [create_obstacle() for _ in range(count)]
 
     obstacles = reset_obstacles()
@@ -113,40 +103,50 @@ def run_game():
                 "vy": random.uniform(-150, 150),
                 "life": random.uniform(0.3, 0.7)
             })
+
     # ---------------- MOON ----------------
     MOON_Y = 100
     MOON_RADIUS = 60
+    # Load Ghibli-style moon image
+    try:
+        moon_img = pygame.image.load("moon_ghibli.png").convert_alpha()
+        moon_img = pygame.transform.scale(moon_img, (150, 150))
+    except:
+        moon_img = None
 
     def draw_moon():
-            pygame.draw.circle(screen, (200, 200, 220), (WIDTH // 2, MOON_Y), MOON_RADIUS)
-            pygame.draw.circle(screen, (180, 180, 200), (WIDTH // 2 - 20, MOON_Y - 10), 10)
-            pygame.draw.circle(screen, (180, 180, 200), (WIDTH // 2 + 25, MOON_Y + 5), 12)
-
-
+        pygame.draw.circle(screen, (200, 200, 220), (WIDTH//2, MOON_Y), MOON_RADIUS)
+        pygame.draw.circle(screen, (180, 180, 200), (WIDTH//2 - 20, MOON_Y - 10), 10)
+        pygame.draw.circle(screen, (180, 180, 200), (WIDTH//2 + 25, MOON_Y + 5), 12)
 
     # ---------------- GAME LOOP ----------------
-    while True:
-        dt = clock.tick(60) / 1000
+    running = True
+    while running:
+        dt = clock.tick(60)/1000
+
+        # Camera shake
+        if camera_shake_timer > 0:
+            shake_offset[0] = random.randint(-5,5)
+            shake_offset[1] = random.randint(-5,5)
+            camera_shake_timer -= dt
+        else:
+            shake_offset = [0,0]
 
         screen.fill(SPACE)
 
         # -------- EVENTS --------
         for event in pygame.event.get():
-
             if event.type == pygame.QUIT:
-                return "quit"
-
+                running = False
             if event.type == pygame.KEYDOWN:
-
                 if event.key == pygame.K_ESCAPE:
-                    return "menu"
-
+                    explosion_sound.stop()
+                    storm_sound.stop()
+                    return
                 if show_intro and event.key == pygame.K_SPACE:
                     show_intro = False
-
                 if event.key == pygame.K_p and not mission_failed and not mission_accomplished:
                     paused = not paused
-
                 if event.key == pygame.K_r and (mission_failed or mission_accomplished):
                     rocket_x, rocket_y, vel_x, vel_y = reset_rocket()
                     obstacles = reset_obstacles()
@@ -167,10 +167,10 @@ def run_game():
 
         # -------- INTRO SCREEN --------
         if show_intro:
-            screen.blit(title_font.render("MISSION SHAKTI", True, (255,255,255)), (270, 140))
-            screen.blit(font.render("Pilot: Sunita Williams", True, (200,200,255)), (290, 190))
-            screen.blit(font.render("Objective: Navigate space hazards and reach the Moon.", True, (220,220,220)), (170, 240))
-            screen.blit(font.render("Press SPACE to Launch Mission", True, (255,215,0)), (250, 330))
+            screen.blit(title_font.render("MISSION SHAKTI", True, (255,255,255)), (390, 140))
+            screen.blit(font.render("Pilot: Sunita Williams", True, (200,200,255)), (415, 190))
+            screen.blit(font.render("Objective: Navigate space hazards and reach the Moon.", True, (220,220,220)), (270, 240))
+            screen.blit(font.render("Press SPACE to Launch Mission", True, (255,215,0)), (370, 330))
             pygame.display.flip()
             continue
 
@@ -181,7 +181,6 @@ def run_game():
                 star[1] = 0
                 star[0] = random.randint(0, WIDTH)
             pygame.draw.circle(screen, STAR, star, 1)
-
 
         incoming_obstacle_warning = False
 
@@ -218,6 +217,7 @@ def run_game():
                         cme_active = True
                         cme_timer = 0
                         cme_cooldown_timer = 0
+                        storm_sound.play(-1)   # loop storm sound
                         cme_vx = random.choice([-1,1]) * 100
                         cme_vy = random.choice([-0.5,0.5]) * 60
                 else:
@@ -230,6 +230,7 @@ def run_game():
                         cme_active = False
                         cme_wave += 1
                         storm_particles.clear()
+                        storm_sound.stop()
 
             # Rocket movement
             vel_x = max(-MAX_SPEED, min(MAX_SPEED, vel_x))
@@ -261,6 +262,7 @@ def run_game():
                     mission_failed = True
                     last_score = score
                     create_blast(rocket_x, rocket_y)
+                    explosion_sound.play()
                     camera_shake_timer = 0.5
                     if score > high_score:
                         high_score = score
@@ -291,11 +293,14 @@ def run_game():
             screen.blit(font.render(" INCOMING OBSTACLE", True, (255,180,80)), (260+offset_x, 70+offset_y))
         if paused:
             screen.blit(big_font.render("PAUSED", True, (255,255,0)), (WIDTH//2 - 80, HEIGHT//2 - 40))
-            screen.blit(font.render("We need you to complete the mission. Press P to Resume.", True, (220,220,220)), (150, HEIGHT//2 + 10))
+            screen.blit(font.render("We need you to complete the mission. Press P to Resume.", True, (220,220,220)), (270, HEIGHT//2 + 10))
 
         # Mission accomplished
         if mission_accomplished:
-            draw_moon()
+            if moon_img:
+                screen.blit(moon_img, (WIDTH//2 - 75, MOON_Y - 75))
+            else:
+                draw_moon()
             if rocket_y > MOON_Y + 30:
                 rocket_y -= 80 * dt
                 rocket_x += (WIDTH//2 - rocket_x) * 0.05
@@ -318,6 +323,3 @@ def run_game():
             screen.blit(font.render("Press R to Restart", True, (200,200,200)), (WIDTH//2 - 95, HEIGHT//2 + 70))
 
         pygame.display.flip()
-
-if __name__ == "__main__":
-    run_game()
